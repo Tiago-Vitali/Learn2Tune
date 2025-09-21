@@ -34,7 +34,10 @@ sidebar = html.Div(
         html.H4("Simulador PID", className="text-white p-2"),
         html.Hr(style={"borderTop": "1px dotted white"}),
         dbc.Nav(
-            [dbc.NavLink("Controle de Nível", href="/", active="exact")],
+            [
+                dbc.NavLink("Controle de Nível", href="/", active="exact"),
+                dbc.NavLink("Controle de Temperatura", href="/temperatura", active="exact"),
+            ],
             vertical=True,
             pills=True,
         ),
@@ -51,7 +54,7 @@ sidebar = html.Div(
     },
 )
 
-# --- 4. Layout principal ---
+# --- 4. Layouts principais para cada página ---
 CONTENT_STYLE = {
     "marginLeft": "15rem",
     "marginRight": "1rem",
@@ -59,176 +62,182 @@ CONTENT_STYLE = {
     "background-color": "#F0F4F5",
 }
 
-h_container = dbc.Container(
-    [
-        dbc.Row(
-            [
-                # Sliders PID
+def create_main_container(tipo="nível"):
+    return dbc.Container(
+        [
+            dbc.Row(
+                [
+                    # Sliders PID
+                    dbc.Col(
+                        [
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label("Kp"),
+                                            dcc.Slider(
+                                                id="kp-slider",
+                                                min=0,
+                                                max=20,
+                                                step=0.1,
+                                                value=3.0,
+                                                tooltip={
+                                                    "placement": "top",
+                                                    "always_visible": True,
+                                                },
+                                                marks=None,
+                                            ),
+                                        ],
+                                        width=9,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            html.Label(""),
+                                            dbc.Input(
+                                                id="kp-input",
+                                                type="number",
+                                                value=3.0,
+                                                style={"width": "100%"},
+                                            ),
+                                        ],
+                                        width=3,
+                                    ),
+                                ]
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label("Ki"),
+                                            dcc.Slider(
+                                                id="ki-slider",
+                                                min=0,
+                                                max=10,
+                                                step=0.1,
+                                                value=0.5,
+                                                tooltip={
+                                                    "placement": "top",
+                                                    "always_visible": True,
+                                                },
+                                                marks=None,
+                                            ),
+                                        ],
+                                        width=9,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            html.Label(""),
+                                            dbc.Input(
+                                                id="ki-input",
+                                                type="number",
+                                                value=0.5,
+                                                style={"width": "100%"},
+                                            ),
+                                        ],
+                                        width=3,
+                                    ),
+                                ]
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label("Kd"),
+                                            dcc.Slider(
+                                                id="kd-slider",
+                                                min=0,
+                                                max=5,
+                                                step=0.05,
+                                                value=0.1,
+                                                tooltip={
+                                                    "placement": "top",
+                                                    "always_visible": True,
+                                                },
+                                                marks=None,
+                                            ),
+                                        ],
+                                        width=9,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            html.Label(""),
+                                            dbc.Input(
+                                                id="kd-input",
+                                                type="number",
+                                                value=0.1,
+                                                style={"width": "100%"},
+                                            ),
+                                        ],
+                                        width=3,
+                                    ),
+                                ]
+                            ),
+                        ],
+                        width=3,
+                    ),
+                    # Setpoint e Botões
+                    dbc.Col(
+                        [
+                            html.Label("Setpoint"),
+                            dcc.Slider(
+                                id="setpoint",
+                                min=0,
+                                max=100,
+                                step=1,
+                                value=50 if tipo == "nível" else 70,  # Valor inicial diferente por página
+                                tooltip={"placement": "top", "always_visible": True},
+                                marks=None,
+                            ),
+                            html.Br(),
+                            dbc.Button(
+                                "Iniciar", id="start", color="success", className="me-2"
+                            ),
+                            dbc.Button(
+                                "Parar", id="stop", color="warning", className="me-2"
+                            ),
+                            dbc.Button("Resetar", id="reset", color="danger"),
+                        ],
+                        width=3,
+                    ),
+                ],
+                className="g-4",
+            ),
+            dbc.Row(
                 dbc.Col(
-                    [
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label("Kp"),
-                                        dcc.Slider(
-                                            id="kp-slider",
-                                            min=0,
-                                            max=20,
-                                            step=0.1,
-                                            value=3.0,
-                                            tooltip={
-                                                "placement": "top",
-                                                "always_visible": True,
-                                            },
-                                            marks=None,
-                                        ),
-                                    ],
-                                    width=9,
-                                ),
-                                dbc.Col(
-                                    [
-                                        html.Label(""),  # For alignment
-                                        dbc.Input(
-                                            id="kp-input",
-                                            type="number",
-                                            value=3.0,
-                                            style={"width": "100%"},
-                                        ),
-                                    ],
-                                    width=3,
-                                ),
-                            ]
-                        ),
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label("Ki"),
-                                        dcc.Slider(
-                                            id="ki-slider",
-                                            min=0,
-                                            max=10,
-                                            step=0.1,
-                                            value=0.5,
-                                            tooltip={
-                                                "placement": "top",
-                                                "always_visible": True,
-                                            },
-                                            marks=None,
-                                        ),
-                                    ],
-                                    width=9,
-                                ),
-                                dbc.Col(
-                                    [
-                                        html.Label(""),
-                                        dbc.Input(
-                                            id="ki-input",
-                                            type="number",
-                                            value=0.5,
-                                            style={"width": "100%"},
-                                        ),
-                                    ],
-                                    width=3,
-                                ),
-                            ]
-                        ),
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.Label("Kd"),
-                                        dcc.Slider(
-                                            id="kd-slider",
-                                            min=0,
-                                            max=5,
-                                            step=0.05,
-                                            value=0.1,
-                                            tooltip={
-                                                "placement": "top",
-                                                "always_visible": True,
-                                            },
-                                            marks=None,
-                                        ),
-                                    ],
-                                    width=9,
-                                ),
-                                dbc.Col(
-                                    [
-                                        html.Label(""),
-                                        dbc.Input(
-                                            id="kd-input",
-                                            type="number",
-                                            value=0.1,
-                                            style={"width": "100%"},
-                                        ),
-                                    ],
-                                    width=3,
-                                ),
-                            ]
-                        ),
-                    ],
-                    width=3,
-                ),
-                # Sistema e Setpoint
-                dbc.Col(
-                    [
-                        html.Label("Sistema"),
-                        dcc.Dropdown(
-                            id="tipo",
-                            options=[
-                                {"label": "Nível", "value": "nível"},
-                                {"label": "Temperatura", "value": "temperatura"},
-                            ],
-                            value="nível",
-                        ),
-                        html.Label("Setpoint"),
-                        dcc.Slider(
-                            id="setpoint",
-                            min=0,
-                            max=100,
-                            step=1,
-                            value=50,
-                            tooltip={"placement": "top", "always_visible": True},
-                            marks=None,
-                        ),
-                        html.Br(),
-                        dbc.Button(
-                            "Iniciar", id="start", color="success", className="me-2"
-                        ),
-                        dbc.Button(
-                            "Parar", id="stop", color="warning", className="me-2"
-                        ),
-                        dbc.Button("Resetar", id="reset", color="danger"),
-                    ],
-                    width=3,
-                ),
-            ],
-            className="g-4",
-        ),
-        dbc.Row(
-            dbc.Col(
-                dcc.Graph(
-                    id="grafico",
-                    style={"width": "90%", "height": "600px"},
-                    config={"responsive": True},
+                    dcc.Graph(
+                        id="grafico",
+                        style={"width": "90%", "height": "600px"},
+                        config={"responsive": True},
+                    )
                 )
-            )
-        ),
-        # Intervalo e armazenamento de estado
-        dcc.Interval(id="intervalo", interval=100, n_intervals=0, disabled=True),
-        dcc.Store(id="sim_state"),
-    ],
-    fluid=True,
-    style=CONTENT_STYLE,
-)
+            ),
+            # Intervalo e armazenamento de estado
+            dcc.Interval(id="intervalo", interval=100, n_intervals=0, disabled=True),
+            dcc.Store(id="sim_state"),
+        ],
+        fluid=True,
+        style=CONTENT_STYLE,
+    )
 
 # --- 5. Layout geral ---
-app.layout = html.Div([dcc.Location(id="url"), sidebar, h_container])
+app.layout = html.Div(
+    [dcc.Location(id="url", refresh=False), sidebar, html.Div(id="page-content")]
+)
 
 
-# --- 6. Callback de simulação ---
+# --- 6. Callback para renderizar o conteúdo da página com base na URL ---
+@app.callback(
+    Output("page-content", "children"),
+    Input("url", "pathname")
+)
+def render_page_content(pathname):
+    if pathname == "/temperatura":
+        return create_main_container("temperatura")
+    # Se a URL não for /temperatura, renderiza a página de nível
+    return create_main_container("nível")
+
+
+# --- 7. Callback de simulação ---
 @app.callback(
     Output("sim_state", "data"),
     Output("intervalo", "disabled"),
@@ -241,16 +250,24 @@ app.layout = html.Div([dcc.Location(id="url"), sidebar, h_container])
     State("ki-slider", "value"),
     State("kd-slider", "value"),
     State("setpoint", "value"),
-    State("tipo", "value"),
+    State("url", "pathname"),  # Lê o pathname da URL
 )
 def atualizar_sim(
-    n_start, n_stop, n_reset, n_intervals, sim_state, kp, ki, kd, setpoint, tipo
+    n_start, n_stop, n_reset, n_intervals, sim_state, kp, ki, kd, setpoint, pathname
 ):
     dt = 0.1
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
 
-    if sim_state is None or trigger_id == "reset":
+    # Determina o tipo de sistema com base no pathname da URL
+    tipo = "temperatura" if pathname == "/temperatura" else "nível"
+
+    # Previne o erro "TypeError: unsupported operand type(s) for *: 'NoneType' and 'float'"
+    kp_val = kp if kp is not None else 0.0
+    ki_val = ki if ki is not None else 0.0
+    kd_val = kd if kd is not None else 0.0
+
+    if sim_state is None or trigger_id == "reset" or tipo != sim_state.get("tipo"):
         plant_ss = control.ss(criar_planta(tipo))
         X0_plant = np.zeros(plant_ss.nstates)
         y0 = 50.0 if tipo == "nível" else 0.0
@@ -286,7 +303,7 @@ def atualizar_sim(
         # --- PID manual SISO ---
         sim_state["I"] += error * dt
         D = (error - sim_state["prev_error"]) / dt
-        u = kp * error + ki * sim_state["I"] + kd * D
+        u = kp_val * error + ki_val * sim_state["I"] + kd_val * D
         u = np.clip(u, 0, 100)
         sim_state["prev_error"] = error
 
@@ -308,7 +325,7 @@ def atualizar_sim(
     return sim_state, not sim_state["running"]
 
 
-# --- 7. Callback do gráfico ---
+# --- 8. Callback do gráfico ---
 @app.callback(Output("grafico", "figure"), Input("sim_state", "data"))
 def atualizar_grafico(sim_state):
     fig = go.Figure()
@@ -362,16 +379,13 @@ def atualizar_grafico(sim_state):
         )
     )
 
-    if sim_state["tipo"] == "nível":
+    if sim_state.get("tipo") == "nível":
         fig.update_yaxes(title_text="Nível [%]", range=[0, 105])
     else:
         fig.update_yaxes(title_text="Temperatura [°C]", autorange=True)
 
     fig.update_layout(
-        xaxis=dict(
-            title="Tempo [s]",
-            range=[start_time, current_time if current_time > 0 else 1],
-        ),
+        xaxis=dict(title_text="Tempo [s]", range=[start_time, current_time if current_time > 0 else 1]),
         yaxis2=dict(title="Abertura [%]", overlaying="y", side="right", range=[0, 105]),
         template="plotly_white",
         autosize=True,
@@ -379,10 +393,7 @@ def atualizar_grafico(sim_state):
     return fig
 
 
-# --- 8. Sincronização dos controles PID ---
-
-
-# Controle para Kp
+# --- 9. Sincronização dos controles PID e restrição de valor não negativo ---
 @app.callback(
     Output("kp-slider", "value"),
     Output("kp-input", "value"),
@@ -392,18 +403,12 @@ def atualizar_grafico(sim_state):
 def sync_kp(slider_value, input_value):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    # Decide o valor com base no controle que disparou o callback
     value = slider_value if trigger_id == "kp-slider" else input_value
-
-    # Garante que o valor não é negativo
     if value is None or value < 0:
         value = 0.0
-
     return value, value
 
 
-# Controle para Ki
 @app.callback(
     Output("ki-slider", "value"),
     Output("ki-input", "value"),
@@ -414,14 +419,11 @@ def sync_ki(slider_value, input_value):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     value = slider_value if trigger_id == "ki-slider" else input_value
-
     if value is None or value < 0:
         value = 0.0
-
     return value, value
 
 
-# Controle para Kd
 @app.callback(
     Output("kd-slider", "value"),
     Output("kd-input", "value"),
@@ -434,10 +436,9 @@ def sync_kd(slider_value, input_value):
     value = slider_value if trigger_id == "kd-slider" else input_value
     if value is None or value < 0:
         value = 0.0
-
     return value, value
 
 
-# --- 8. Rodar app ---
+# --- 10. Rodar app ---
 if __name__ == "__main__":
     app.run(debug=True)
