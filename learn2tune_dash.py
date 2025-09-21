@@ -34,7 +34,7 @@ sidebar = html.Div(
         html.H4("Simulador PID", className="text-white p-2"),
         html.Hr(style={"borderTop": "1px dotted white"}),
         dbc.Nav(
-            [dbc.NavLink("Simulação", href="/", active="exact")],
+            [dbc.NavLink("Controle de Nível", href="/", active="exact")],
             vertical=True,
             pills=True,
         ),
@@ -66,35 +66,107 @@ h_container = dbc.Container(
                 # Sliders PID
                 dbc.Col(
                     [
-                        html.Label("Kp"),
-                        dcc.Slider(
-                            id="kp",
-                            min=0,
-                            max=20,
-                            step=0.1,
-                            value=3.0,
-                            tooltip={"placement": "top", "always_visible": True},
-                            marks=None,
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label("Kp"),
+                                        dcc.Slider(
+                                            id="kp-slider",
+                                            min=0,
+                                            max=20,
+                                            step=0.1,
+                                            value=3.0,
+                                            tooltip={
+                                                "placement": "top",
+                                                "always_visible": True,
+                                            },
+                                            marks=None,
+                                        ),
+                                    ],
+                                    width=9,
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label(""),  # For alignment
+                                        dbc.Input(
+                                            id="kp-input",
+                                            type="number",
+                                            value=3.0,
+                                            style={"width": "100%"},
+                                        ),
+                                    ],
+                                    width=3,
+                                ),
+                            ]
                         ),
-                        html.Label("Ki"),
-                        dcc.Slider(
-                            id="ki",
-                            min=0,
-                            max=10,
-                            step=0.1,
-                            value=0.5,
-                            tooltip={"placement": "top", "always_visible": True},
-                            marks=None,
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label("Ki"),
+                                        dcc.Slider(
+                                            id="ki-slider",
+                                            min=0,
+                                            max=10,
+                                            step=0.1,
+                                            value=0.5,
+                                            tooltip={
+                                                "placement": "top",
+                                                "always_visible": True,
+                                            },
+                                            marks=None,
+                                        ),
+                                    ],
+                                    width=9,
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label(""),
+                                        dbc.Input(
+                                            id="ki-input",
+                                            type="number",
+                                            value=0.5,
+                                            style={"width": "100%"},
+                                        ),
+                                    ],
+                                    width=3,
+                                ),
+                            ]
                         ),
-                        html.Label("Kd"),
-                        dcc.Slider(
-                            id="kd",
-                            min=0,
-                            max=5,
-                            step=0.05,
-                            value=0.1,
-                            tooltip={"placement": "top", "always_visible": True},
-                            marks=None,
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    [
+                                        html.Label("Kd"),
+                                        dcc.Slider(
+                                            id="kd-slider",
+                                            min=0,
+                                            max=5,
+                                            step=0.05,
+                                            value=0.1,
+                                            tooltip={
+                                                "placement": "top",
+                                                "always_visible": True,
+                                            },
+                                            marks=None,
+                                        ),
+                                    ],
+                                    width=9,
+                                ),
+                                dbc.Col(
+                                    [
+                                        html.Label(""),
+                                        dbc.Input(
+                                            id="kd-input",
+                                            type="number",
+                                            value=0.1,
+                                            style={"width": "100%"},
+                                        ),
+                                    ],
+                                    width=3,
+                                ),
+                            ]
                         ),
                     ],
                     width=3,
@@ -165,9 +237,9 @@ app.layout = html.Div([dcc.Location(id="url"), sidebar, h_container])
     Input("reset", "n_clicks"),
     Input("intervalo", "n_intervals"),
     State("sim_state", "data"),
-    State("kp", "value"),
-    State("ki", "value"),
-    State("kd", "value"),
+    State("kp-slider", "value"),
+    State("ki-slider", "value"),
+    State("kd-slider", "value"),
     State("setpoint", "value"),
     State("tipo", "value"),
 )
@@ -240,13 +312,31 @@ def atualizar_sim(
 @app.callback(Output("grafico", "figure"), Input("sim_state", "data"))
 def atualizar_grafico(sim_state):
     fig = go.Figure()
-    if sim_state is None:
+    if sim_state is None or not sim_state["time"]:
         return fig
+
+    time = np.array(sim_state["time"])
+    y = np.array(sim_state["y"])
+    sp = np.array(sim_state["sp"])
+    u = np.array(sim_state["u"])
+
+    # Moving window of 60 seconds
+    window_duration = 60.0
+    current_time = time[-1]
+    start_time = max(0, current_time - window_duration)
+
+    # Find indices within the window
+    indices = np.where(time >= start_time)
+
+    time_window = time[indices]
+    y_window = y[indices]
+    sp_window = sp[indices]
+    u_window = u[indices]
 
     fig.add_trace(
         go.Scatter(
-            x=sim_state["time"],
-            y=sim_state["y"],
+            x=time_window,
+            y=y_window,
             mode="lines",
             name="Saída do Processo",
             line=dict(color="blue"),
@@ -254,8 +344,8 @@ def atualizar_grafico(sim_state):
     )
     fig.add_trace(
         go.Scatter(
-            x=sim_state["time"],
-            y=sim_state["sp"],
+            x=time_window,
+            y=sp_window,
             mode="lines",
             name="Setpoint",
             line=dict(color="red", dash="dash"),
@@ -263,8 +353,8 @@ def atualizar_grafico(sim_state):
     )
     fig.add_trace(
         go.Scatter(
-            x=sim_state["time"],
-            y=sim_state["u"],
+            x=time_window,
+            y=u_window,
             mode="lines",
             name="Abertura Válvula [%]",
             line=dict(color="green"),
@@ -278,11 +368,74 @@ def atualizar_grafico(sim_state):
         fig.update_yaxes(title_text="Temperatura [°C]", autorange=True)
 
     fig.update_layout(
+        xaxis=dict(
+            title="Tempo [s]",
+            range=[start_time, current_time if current_time > 0 else 1],
+        ),
         yaxis2=dict(title="Abertura [%]", overlaying="y", side="right", range=[0, 105]),
         template="plotly_white",
         autosize=True,
     )
     return fig
+
+
+# --- 8. Sincronização dos controles PID ---
+
+
+# Controle para Kp
+@app.callback(
+    Output("kp-slider", "value"),
+    Output("kp-input", "value"),
+    Input("kp-slider", "value"),
+    Input("kp-input", "value"),
+)
+def sync_kp(slider_value, input_value):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    # Decide o valor com base no controle que disparou o callback
+    value = slider_value if trigger_id == "kp-slider" else input_value
+
+    # Garante que o valor não é negativo
+    if value is None or value < 0:
+        value = 0.0
+
+    return value, value
+
+
+# Controle para Ki
+@app.callback(
+    Output("ki-slider", "value"),
+    Output("ki-input", "value"),
+    Input("ki-slider", "value"),
+    Input("ki-input", "value"),
+)
+def sync_ki(slider_value, input_value):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    value = slider_value if trigger_id == "ki-slider" else input_value
+
+    if value is None or value < 0:
+        value = 0.0
+
+    return value, value
+
+
+# Controle para Kd
+@app.callback(
+    Output("kd-slider", "value"),
+    Output("kd-input", "value"),
+    Input("kd-slider", "value"),
+    Input("kd-input", "value"),
+)
+def sync_kd(slider_value, input_value):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    value = slider_value if trigger_id == "kd-slider" else input_value
+    if value is None or value < 0:
+        value = 0.0
+
+    return value, value
 
 
 # --- 8. Rodar app ---
