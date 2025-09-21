@@ -1,4 +1,7 @@
 # Learn2Tune
+
+<img src='https://github.com/Tiago-Vitali/Learn2Tune/blob/main/Logo1.png' width="150">
+
 The goal of this project is to create a web application to facilitate learning how to tune industrial PID controllers.
 
 This project is built using Python Dash to build the frontend and the callbacks.
